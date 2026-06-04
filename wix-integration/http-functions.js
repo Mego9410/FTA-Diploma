@@ -37,7 +37,7 @@ import { contacts } from 'wix-crm-backend';
 
 // Set this to the exact origin that hosts the landing page, e.g.
 // 'https://diploma.franktaylor.co.uk'. Use '*' only while testing.
-const ALLOWED_ORIGIN = '*';
+const ALLOWED_ORIGIN = 'https://fta-diploma.vercel.app';
 const COLLECTION = 'DiplomaRegistrations';
 const CONTACT_LABEL = 'Diploma — Jan 2027 interest';
 

@@ -13,7 +13,7 @@
      While it still contains "YOURDOMAIN" the form runs in demo mode
      (shows success without sending), so the page works before go-live.
      ============================================================ */
-  var REGISTER_ENDPOINT = 'https://www.YOURDOMAIN.com/_functions/registerInterest';
+  var REGISTER_ENDPOINT = 'https://oliveracton.wixsite.com/my-site-1/_functions/registerInterest';
 
   /* ---------- Scroll reveal ---------- */
   var reveals = document.querySelectorAll('.reveal');
