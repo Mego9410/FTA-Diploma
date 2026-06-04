@@ -125,6 +125,8 @@ export async function post_registerInterest(request) {
 
     return ok({ headers: corsHeaders(), body: { ok: true, contactId: contactId } });
   } catch (err) {
-    return serverError({ headers: corsHeaders(), body: { ok: false, error: 'Server error storing submission' } });
+    // Temporary: surface the real error to help diagnose setup issues.
+    // Revert `error` back to a generic message before launch.
+    return serverError({ headers: corsHeaders(), body: { ok: false, error: 'Server error storing submission', detail: String((err && err.message) || err) } });
   }
 }
