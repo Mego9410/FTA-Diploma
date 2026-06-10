@@ -32,7 +32,6 @@ img{max-width:100%;display:block}
 .announce .hl{color:var(--gold)}
 .announce a{color:#fff;border-bottom:1px solid rgba(228,173,37,.6);padding-bottom:1px}
 .announce a:hover{color:var(--gold)}
-.announce .novus-inline--announce{height:20px;vertical-align:-4px;margin:0 2px}
 
 /* =====================================================
    NAV + CO-BRAND LOCKUP
@@ -163,7 +162,7 @@ img{max-width:100%;display:block}
    ===================================================== */
 .authority{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center}
 .authority-img{position:relative;border-radius:var(--r-xl);overflow:hidden;min-height:380px}
-.authority-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.authority-img > img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .authority-img .ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(12,13,16,.1),rgba(12,13,16,.55))}
 .authority-img .badge-float{position:absolute;left:24px;bottom:24px;right:24px;background:rgba(255,255,255,.95);backdrop-filter:blur(6px);border-radius:var(--r-md);padding:18px 22px;display:flex;align-items:center;gap:14px}
 .badge-lockup{display:flex;align-items:center;gap:10px;flex:none}
@@ -287,7 +286,6 @@ select.inp{appearance:none;background-image:url("../icons/down-yellow-plain-arro
 .footer-plate .fta-logo{height:26px;width:auto}
 .footer-lockup .novus-logo{height:36px;width:auto;border-radius:6px}
 .footer-lockup .x{color:rgba(255,255,255,.4);font-size:16px}
-.footer-brand p .novus-inline{height:1.05em;vertical-align:-0.12em}
 .footer-brand p{color:rgba(255,255,255,.72);font-size:14.5px;line-height:1.65;margin:0 0 22px;max-width:340px}
 .socials{display:flex;gap:11px}
 .social img{width:38px;height:38px}
@@ -298,12 +296,6 @@ select.inp{appearance:none;background-image:url("../icons/down-yellow-plain-arro
 .footer-bottom{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;padding-top:26px;color:rgba(255,255,255,.5);font-size:13px}
 .footer-bottom a{color:rgba(255,255,255,.6)}
 .footer-bottom a:hover{color:#fff}
-
-/* ---------- Novus logo (shared) ---------- */
-.novus-inline{display:inline;height:1.15em;width:auto;vertical-align:-0.18em;border-radius:3px;margin:0 1px}
-.novus-inline--footer{height:16px;vertical-align:-3px}
-.novus-inline--consent{height:1em;vertical-align:-0.14em}
-.consent .novus-inline{flex:none}
 
 /* =====================================================
    STICKY MOBILE CTA
