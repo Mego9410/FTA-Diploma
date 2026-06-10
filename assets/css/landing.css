@@ -130,7 +130,7 @@ img{max-width:100%;display:block}
 .mentor-card{background:#fff;border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-sm);transition:transform var(--dur) var(--ease-out),box-shadow var(--dur) var(--ease-out)}
 .mentor-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
 .mentor-photo{height:280px;background:var(--surface-3);position:relative;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
-.mentor-photo .initials{font-family:var(--font-serif);font-weight:700;font-size:72px;color:var(--gold-deep);opacity:.5;position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.mentor-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top}
 .mentor-photo .lead-tag{position:absolute;top:14px;left:14px;z-index:2}
 .mentor-body{padding:24px 26px}
 .mentor-body h3{font-size:20px;color:var(--fg-1)}
