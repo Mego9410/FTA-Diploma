@@ -129,8 +129,12 @@ img{max-width:100%;display:block}
 .mentor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
 .mentor-card{background:#fff;border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-sm);transition:transform var(--dur) var(--ease-out),box-shadow var(--dur) var(--ease-out)}
 .mentor-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
-.mentor-photo{height:280px;background:var(--surface-3);position:relative;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
-.mentor-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top}
+.mentor-photo{height:300px;background:var(--surface-3);position:relative;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
+.mentor-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 28%}
+.mentor-photo--raj img{object-position:center 32%}
+.mentor-photo--andy img,.mentor-photo--chris img{object-position:center 24%}
+.mentor-photo--davesh img{object-position:center 20%}
+.mentor-photo--vic img{object-position:center 26%}
 .mentor-photo .lead-tag{position:absolute;top:14px;left:14px;z-index:2}
 .mentor-body{padding:24px 26px}
 .mentor-body h3{font-size:20px;color:var(--fg-1)}
@@ -326,7 +330,7 @@ select.inp{appearance:none;background-image:url("../icons/down-yellow-plain-arro
   .nav-toggle{display:block}
   .sec-head h2,.reg-intro h2{font-size:32px}
   /* mentor photos shrink on tablet so initials/headshots aren't oversized */
-  .mentor-photo{height:240px}
+  .mentor-photo{height:260px}
 }
 @media (max-width:600px){
   :root{--gutter:18px}
