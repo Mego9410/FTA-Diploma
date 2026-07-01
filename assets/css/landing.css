@@ -86,6 +86,9 @@ img{max-width:100%;display:block}
 .cred-item .ic-partnership .fta-logo{height:18px;width:auto}
 .cred-item .ic-partnership .novus-logo{height:22px;width:auto;border-radius:3px}
 .cred-item .ic-partnership .mini-x{font-size:12px;color:var(--fg-4);font-weight:600;line-height:1}
+.cred-item--lead{align-items:flex-start}
+.cred-item--lead .ic{margin-top:2px}
+.cred-item .organiser-names{display:block;margin-top:4px;font-size:12.5px;font-weight:600;color:var(--gold-deep);line-height:1.45}
 
 /* =====================================================
    PAIN POINTS
@@ -137,7 +140,7 @@ img{max-width:100%;display:block}
 .mentor-photo--raj img{object-position:center 32%}
 .mentor-photo--andy img,.mentor-photo--chris img{object-position:center 24%}
 .mentor-photo--davesh img{object-position:center 20%}
-.mentor-photo--vic img{object-position:center 26%}
+.mentor-photo--vic img{object-position:center 18%}
 .mentor-photo .lead-tag{position:absolute;top:14px;left:14px;z-index:2}
 .mentor-body{padding:24px 26px}
 .mentor-body h3{font-size:20px;color:var(--fg-1)}
@@ -188,6 +191,8 @@ img{max-width:100%;display:block}
 .invest-card.feature .price{color:#fff}
 .invest-card .price small{font-size:17px;font-weight:600;color:var(--fg-3)}
 .invest-card.feature .price small{color:rgba(255,255,255,.6)}
+.invest-card .price-finance{font-size:16px;color:var(--fg-1);margin-top:12px;padding:12px 16px;background:var(--gold-tint);border-radius:var(--r-md);border-left:3px solid var(--gold-deep);line-height:1.5;position:relative}
+.invest-card .price-finance strong{color:var(--gold-deep)}
 .invest-card .price-note{font-size:14px;color:var(--fg-2);margin-top:14px;position:relative}
 .invest-card.feature .price-note{color:rgba(255,255,255,.7)}
 .incl{list-style:none;margin:26px 0 0;padding:0;display:flex;flex-direction:column;gap:14px;position:relative}
