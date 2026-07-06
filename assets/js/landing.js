@@ -7,7 +7,7 @@
   /* ============================================================
      WIX INTEGRATION CONFIG
      Form submissions are handled by the Wix Velo endpoint below.
-     Landing page: https://www.fta-academy.com
+     Landing page: https://fta-academy.com
        Live (wixsite URL):    https://USERNAME.wixsite.com/SITE/_functions/registerInterest
        Test version:          .../_functions-dev/registerInterest
      While REGISTER_ENDPOINT contains "YOURDOMAIN" the form runs in demo mode

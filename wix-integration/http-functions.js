@@ -11,7 +11,7 @@
  *
  *  YOUR ENDPOINT URLS (used in assets/js/landing.js → REGISTER_ENDPOINT):
  *     Live (wixsite URL):   https://USERNAME.wixsite.com/SITE/_functions/registerInterest
- *     Landing page:         https://www.fta-academy.com
+ *     Landing page:         https://fta-academy.com
  *     Test (before publish): replace /_functions/ with /_functions-dev/
  *
  *  CREATE THE DATA COLLECTION (Wix Editor → Dev Mode → Databases):
@@ -45,8 +45,8 @@ import { contacts } from 'wix-crm-backend';
 
 // Origins that host the landing page (Vercel). Use '*' only while testing.
 const ALLOWED_ORIGINS = [
-  'https://www.fta-academy.com',
-  'https://fta-academy.com'
+  'https://fta-academy.com',
+  'https://www.fta-academy.com'
 ];
 // Collection ID from Dev Mode → Databases (display name may differ, e.g. Import1).
 const COLLECTION = 'Import1';

@@ -3,13 +3,7 @@
     {
       "source": "/:path*",
       "has": [{ "type": "host", "value": "fta-diploma.vercel.app" }],
-      "destination": "https://www.fta-academy.com/:path*",
-      "permanent": true
-    },
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "fta-academy.com" }],
-      "destination": "https://www.fta-academy.com/:path*",
+      "destination": "https://fta-academy.com/:path*",
       "permanent": true
     }
   ]
