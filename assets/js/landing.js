@@ -70,11 +70,146 @@
 
   function setError(field, on) {
     field.classList.toggle('invalid', on);
+    var custom = field.closest('.custom-select');
+    if (custom) custom.classList.toggle('invalid', on);
     var group = field.closest('.field-group');
     if (!group) return;
     var msg = group.querySelector('.err-msg');
     if (msg) msg.classList.toggle('show', on);
   }
+
+  function focusField(field) {
+    if (field.closest('.custom-select')) {
+      var trigger = field.closest('.custom-select').querySelector('.custom-select-trigger');
+      if (trigger) {
+        trigger.focus({ preventScroll: true });
+        return;
+      }
+    }
+    field.focus({ preventScroll: true });
+  }
+
+  function initCustomSelects() {
+    var chevSrc = 'assets/icons/down-yellow-plain-arrow.svg';
+    form.querySelectorAll('select.inp').forEach(function (select) {
+      var wrap = document.createElement('div');
+      wrap.className = 'custom-select';
+      select.parentNode.insertBefore(wrap, select);
+      wrap.appendChild(select);
+
+      var trigger = document.createElement('button');
+      trigger.type = 'button';
+      trigger.className = 'custom-select-trigger inp';
+      trigger.setAttribute('aria-haspopup', 'listbox');
+      trigger.setAttribute('aria-expanded', 'false');
+      trigger.innerHTML =
+        '<span class="value"></span>' +
+        '<img class="chev" src="' + chevSrc + '" alt="" aria-hidden="true">';
+
+      var list = document.createElement('ul');
+      list.className = 'custom-select-list';
+      list.setAttribute('role', 'listbox');
+      list.id = select.id + '-list';
+
+      var valueEl = trigger.querySelector('.value');
+      var placeholder = '';
+
+      function syncTrigger() {
+        var option = select.options[select.selectedIndex];
+        var empty = !select.value;
+        var label = empty ? placeholder : (option ? option.textContent : '');
+        valueEl.textContent = label;
+        valueEl.classList.toggle('is-placeholder', empty);
+        list.querySelectorAll('.custom-select-option').forEach(function (item) {
+          item.setAttribute('aria-selected', item.dataset.value === select.value ? 'true' : 'false');
+        });
+      }
+
+      Array.prototype.forEach.call(select.options, function (option, index) {
+        if (option.value === '') {
+          if (!placeholder) placeholder = option.textContent;
+          return;
+        }
+        var item = document.createElement('li');
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'custom-select-option';
+        btn.setAttribute('role', 'option');
+        btn.dataset.value = option.value;
+        btn.textContent = option.textContent;
+        btn.addEventListener('click', function () {
+          select.value = option.value;
+          syncTrigger();
+          closeAllCustomSelects();
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+          trigger.focus();
+        });
+        item.appendChild(btn);
+        list.appendChild(item);
+      });
+
+      trigger.setAttribute('aria-controls', list.id);
+      trigger.addEventListener('click', function () {
+        var open = wrap.classList.toggle('open');
+        trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) closeAllCustomSelects(wrap);
+      });
+
+      trigger.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          wrap.classList.add('open');
+          trigger.setAttribute('aria-expanded', 'true');
+          closeAllCustomSelects(wrap);
+          var selected = list.querySelector('[aria-selected="true"]') || list.querySelector('.custom-select-option');
+          if (selected) selected.focus();
+        } else if (e.key === 'Escape') {
+          closeAllCustomSelects();
+        }
+      });
+
+      list.addEventListener('keydown', function (e) {
+        var options = Array.prototype.slice.call(list.querySelectorAll('.custom-select-option'));
+        var current = document.activeElement;
+        var index = options.indexOf(current);
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          var next = options[Math.min(index + 1, options.length - 1)] || options[0];
+          next.focus();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          var prev = options[Math.max(index - 1, 0)] || options[options.length - 1];
+          prev.focus();
+        } else if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (current && current.classList.contains('custom-select-option')) current.click();
+        } else if (e.key === 'Escape') {
+          closeAllCustomSelects();
+          trigger.focus();
+        }
+      });
+
+      wrap.appendChild(trigger);
+      wrap.appendChild(list);
+      if (!placeholder && select.options.length) placeholder = select.options[0].textContent;
+      syncTrigger();
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.custom-select')) closeAllCustomSelects();
+    });
+  }
+
+  function closeAllCustomSelects(except) {
+    form.querySelectorAll('.custom-select.open').forEach(function (wrap) {
+      if (except && wrap === except) return;
+      wrap.classList.remove('open');
+      var trigger = wrap.querySelector('.custom-select-trigger');
+      if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  initCustomSelects();
 
   function validEmail(v) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -161,7 +296,7 @@
     if (!allOk) {
       if (firstBad) {
         firstBad.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        firstBad.focus({ preventScroll: true });
+        focusField(firstBad);
       }
       return;
     }
