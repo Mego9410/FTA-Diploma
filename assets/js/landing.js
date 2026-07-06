@@ -6,11 +6,11 @@
 
   /* ============================================================
      WIX INTEGRATION CONFIG
-     Replace REGISTER_ENDPOINT with your published Wix Velo endpoint:
-       Live (custom domain):  https://www.yourdomain.com/_functions/registerInterest
+     Form submissions are handled by the Wix Velo endpoint below.
+     Landing page: https://www.fta-academy.com
        Live (wixsite URL):    https://USERNAME.wixsite.com/SITE/_functions/registerInterest
        Test version:          .../_functions-dev/registerInterest
-     While it still contains "YOURDOMAIN" the form runs in demo mode
+     While REGISTER_ENDPOINT contains "YOURDOMAIN" the form runs in demo mode
      (shows success without sending), so the page works before go-live.
      ============================================================ */
   var REGISTER_ENDPOINT = 'https://oliveracton.wixsite.com/my-site-1/_functions/registerInterest';
@@ -186,22 +186,38 @@
       body: JSON.stringify(collectPayload())
     })
       .then(function (res) {
-        if (!res.ok) throw new Error('Request failed (' + res.status + ')');
-        return res.json();
+        return res.json().then(function (data) {
+          if (!res.ok) {
+            var err = new Error((data && data.error) || 'Request failed (' + res.status + ')');
+            err.detail = data && data.detail;
+            throw err;
+          }
+          return data;
+        });
       })
       .then(function (data) {
         if (data && data.ok) {
           showSuccess();
         } else {
-          throw new Error((data && data.error) || 'Submission failed');
+          var fail = new Error((data && data.error) || 'Submission failed');
+          fail.detail = data && data.detail;
+          throw fail;
         }
       })
-      .catch(function () {
+      .catch(function (err) {
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.innerHTML = submitBtnHtml;
         }
-        showFormError("Sorry — something went wrong sending your registration. Please try again, or call us on 0330 088 1156.");
+        var detail = err && err.detail;
+        if (detail) {
+          console.error('Registration submission failed:', detail);
+        }
+        var message = "Sorry — something went wrong sending your registration. Please try again, or call us on 0330 088 1156.";
+        if (detail) {
+          message += ' Technical detail: ' + detail;
+        }
+        showFormError(message);
       });
   });
 })();
