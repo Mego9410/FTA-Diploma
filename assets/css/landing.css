@@ -66,7 +66,7 @@ img{max-width:100%;display:block}
 .hero-title .em{color:var(--gold)}
 .hero-sub{color:rgba(255,255,255,.9);font-size:19px;line-height:1.6;margin-top:24px;max-width:620px}
 .hero-cta{display:flex;flex-wrap:wrap;gap:14px;margin-top:34px}
-.hero-trust{display:flex;flex-wrap:wrap;gap:28px;margin-top:42px;padding-top:30px;border-top:1px solid rgba(255,255,255,.16)}
+.hero-trust{display:flex;flex-wrap:nowrap;gap:20px;margin-top:42px;padding-top:30px;border-top:1px solid rgba(255,255,255,.16)}
 .hero-trust .ht{display:flex;flex-direction:column;gap:2px}
 .hero-trust .ht b{color:#fff;font-size:26px;font-weight:800;letter-spacing:-.02em;font-family:var(--font-sans)}
 .hero-trust .ht span{color:rgba(255,255,255,.72);font-size:13px;font-weight:600}
@@ -145,7 +145,8 @@ img{max-width:100%;display:block}
 .mentor-photo{height:300px;background:var(--surface-3);position:relative;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
 .mentor-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 28%}
 .mentor-photo--raj img{object-position:center 32%}
-.mentor-photo--andy img,.mentor-photo--chris img{object-position:center 24%}
+.mentor-photo--andy img{object-position:center 28%}
+.mentor-photo--chris img{object-position:center 24%}
 .mentor-photo--davesh img{object-position:center 20%}
 .mentor-photo--vic img{object-position:center 18%}
 .mentor-photo .lead-tag{position:absolute;top:14px;left:14px;z-index:2}
@@ -395,7 +396,7 @@ textarea.inp{height:auto;padding:14px 16px;resize:vertical;min-height:96px;line-
   .hero-sub{font-size:15.5px;margin-top:18px}
   .hero-cta{margin-top:26px;gap:10px}
   .hero-cta .btn{width:100%;justify-content:center}
-  .hero-trust{gap:16px 22px;margin-top:30px;padding-top:24px}
+  .hero-trust{flex-wrap:wrap;gap:16px 22px;margin-top:30px;padding-top:24px}
   .hero-trust .ht b{font-size:20px}
   .hero-trust .ht span{font-size:12px}
 
