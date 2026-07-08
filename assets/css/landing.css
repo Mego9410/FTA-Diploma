@@ -145,7 +145,7 @@ img{max-width:100%;display:block}
 .mentor-photo{height:300px;background:var(--surface-3);position:relative;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
 .mentor-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 28%}
 .mentor-photo--raj img{object-position:center 32%}
-.mentor-photo--andy img{object-position:center 28%}
+.mentor-photo--andy img{object-position:center 20%}
 .mentor-photo--chris img{object-position:center 24%}
 .mentor-photo--davesh img{object-position:center 20%}
 .mentor-photo--vic img{object-position:center 18%}
