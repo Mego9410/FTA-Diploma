@@ -16,8 +16,8 @@
      ============================================================ */
   var REGISTER_ENDPOINT = 'https://oliveracton.wixsite.com/my-site-1/_functions/registerInterest';
   var FINANCE_ENDPOINT = 'https://oliveracton.wixsite.com/my-site-1/_functions/requestFinance';
-  // Test inbox for finance eligibility emails (basic fields only).
-  var FINANCE_NOTIFY_EMAIL = 'oliver.acton@ft-associates.com';
+  // Same-origin Vercel function — emails basic fields to the test inbox.
+  var FINANCE_EMAIL_ENDPOINT = '/api/request-finance';
   // Basic contact fields only — kept after submit for the optional finance CTA.
   var lastBasicDetails = null;
 
@@ -304,7 +304,7 @@
         setFinanceStatus('Sorry — we could not find your details. Please refresh and register again.', 'err');
         return;
       }
-      if (FINANCE_ENDPOINT.indexOf('YOURDOMAIN') !== -1) {
+      if (REGISTER_ENDPOINT.indexOf('YOURDOMAIN') !== -1) {
         setFinanceStatus('Thanks — your details would be sent for a finance check (demo mode).', 'ok');
         financeBtn.disabled = true;
         return;
@@ -314,55 +314,44 @@
       financeBtn.innerHTML = 'Sending&hellip;';
       setFinanceStatus('', '');
 
-      var emailPayload = {
-        _subject: 'FTA Diploma - finance eligibility request (test)',
-        _template: 'table',
-        _replyto: lastBasicDetails.email,
-        name: lastBasicDetails.firstName + ' ' + lastBasicDetails.lastName,
-        email: lastBasicDetails.email,
-        mobile: lastBasicDetails.mobile,
-        partner: 'Performance Finance',
-        pageUrl: lastBasicDetails.pageUrl || '',
-        note: 'Basic contact details only. Shared with consent via the diploma registration finance CTA.'
-      };
+      var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var timeoutId = setTimeout(function () {
+        if (controller) controller.abort();
+      }, 15000);
 
-      // Email goes from the browser; Wix only records a CRM finance label.
-      Promise.all([
-        fetch('https://formsubmit.co/ajax/' + encodeURIComponent(FINANCE_NOTIFY_EMAIL), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify(emailPayload)
-        }).then(function (res) {
+      fetch(FINANCE_EMAIL_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(lastBasicDetails),
+        signal: controller ? controller.signal : undefined
+      })
+        .then(function (res) {
           return res.json().then(function (data) {
-            if (!res.ok || (data && data.success === 'false')) {
-              throw new Error((data && (data.message || data.error)) || 'Email send failed');
+            if (!res.ok || !(data && data.ok)) {
+              var err = new Error((data && data.error) || 'Request failed (' + res.status + ')');
+              err.detail = data && data.detail;
+              throw err;
             }
             return data;
           });
-        }),
-        fetch(FINANCE_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(lastBasicDetails)
-        }).then(function (res) {
-          return res.json().then(function (data) {
-            // CRM label is best-effort; email success is what the user cares about.
-            if (!res.ok) {
-              console.error('Finance CRM label failed:', data && (data.detail || data.error));
-            }
-            return data;
-          });
-        }).catch(function (err) {
-          console.error('Finance CRM label failed:', err);
-          return null;
         })
-      ])
         .then(function () {
+          clearTimeout(timeoutId);
           setFinanceStatus('Thanks — your details have been sent to Performance Finance. They will be in touch about eligibility.', 'ok');
           financeBtn.innerHTML = 'Details sent';
+
+          // Best-effort CRM label — do not block the success state.
+          fetch(FINANCE_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(lastBasicDetails)
+          }).catch(function (err) {
+            console.error('Finance CRM label failed:', err);
+          });
         })
         .catch(function (err) {
-          console.error('Finance request failed:', err);
+          clearTimeout(timeoutId);
+          console.error('Finance request failed:', err && (err.detail || err.message || err));
           financeBtn.disabled = false;
           financeBtn.innerHTML = financeBtnHtml;
           setFinanceStatus('Sorry — we could not send your details just now. Please try again, or call us on 0330 088 1156.', 'err');
