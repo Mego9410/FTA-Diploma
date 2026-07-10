@@ -1,3 +1,6 @@
+// NOTE: Finance emails are sent from the browser (assets/js/landing.js).
+// FormSubmit returns 403 when called from Vercel/server IPs, so this API
+// route is kept only as a fallback reference and is not used by the page.
 const FINANCE_NOTIFY_EMAIL = 'Pete.George@performancefinance.co.uk';
 const FINANCE_CC_EMAILS = [
   'chris.strevens@ft-associates.com',

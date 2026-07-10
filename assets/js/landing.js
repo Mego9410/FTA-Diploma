@@ -16,8 +16,12 @@
      ============================================================ */
   var REGISTER_ENDPOINT = 'https://oliveracton.wixsite.com/my-site-1/_functions/registerInterest';
   var FINANCE_ENDPOINT = 'https://oliveracton.wixsite.com/my-site-1/_functions/requestFinance';
-  // Same-origin Vercel function — emails basic fields to the test inbox.
-  var FINANCE_EMAIL_ENDPOINT = '/api/request-finance';
+  // FormSubmit must be called from the browser (server/Vercel IPs get 403).
+  var FINANCE_NOTIFY_EMAILS = [
+    'Pete.George@performancefinance.co.uk',
+    'chris.strevens@ft-associates.com',
+    'oliver.acton@ft-associates.com'
+  ];
   // Basic contact fields only — kept after submit for the optional finance CTA.
   var lastBasicDetails = null;
 
@@ -296,6 +300,32 @@
     status.classList.toggle('is-err', kind === 'err');
   }
 
+  function sendFinanceEmailTo(to, details) {
+    return fetch('https://formsubmit.co/ajax/' + encodeURIComponent(to), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        _subject: 'FTA Diploma - finance eligibility request',
+        _template: 'table',
+        _captcha: 'false',
+        _replyto: details.email,
+        name: details.firstName + ' ' + details.lastName,
+        email: details.email,
+        mobile: details.mobile,
+        partner: 'Performance Finance',
+        pageUrl: details.pageUrl || '',
+        note: 'Basic contact details only. Shared with consent via the diploma registration finance CTA.'
+      })
+    }).then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok || data.success === 'false' || data.success === false) {
+          throw new Error((data && (data.message || data.error)) || ('Email send failed (' + res.status + ')'));
+        }
+        return data;
+      });
+    });
+  }
+
   var financeBtn = document.getElementById('financeSendBtn');
   var financeBtnHtml = financeBtn ? financeBtn.innerHTML : '';
   if (financeBtn) {
@@ -314,33 +344,29 @@
       financeBtn.innerHTML = 'Sending&hellip;';
       setFinanceStatus('', '');
 
-      var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      var timeoutId = setTimeout(function () {
-        if (controller) controller.abort();
-      }, 15000);
+      var settled = typeof Promise.allSettled === 'function'
+        ? Promise.allSettled(FINANCE_NOTIFY_EMAILS.map(function (to) {
+          return sendFinanceEmailTo(to, lastBasicDetails);
+        }))
+        : Promise.all(FINANCE_NOTIFY_EMAILS.map(function (to) {
+          return sendFinanceEmailTo(to, lastBasicDetails).then(
+            function (value) { return { status: 'fulfilled', value: value }; },
+            function (reason) { return { status: 'rejected', reason: reason }; }
+          );
+        }));
 
-      fetch(FINANCE_EMAIL_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(lastBasicDetails),
-        signal: controller ? controller.signal : undefined
-      })
-        .then(function (res) {
-          return res.json().then(function (data) {
-            if (!res.ok || !(data && data.ok)) {
-              var err = new Error((data && data.error) || 'Request failed (' + res.status + ')');
-              err.detail = data && data.detail;
-              throw err;
-            }
-            return data;
-          });
-        })
-        .then(function () {
-          clearTimeout(timeoutId);
+      settled
+        .then(function (results) {
+          var anyOk = results.some(function (result) { return result.status === 'fulfilled'; });
+          if (!anyOk) {
+            var firstErr = results[0] && results[0].reason;
+            throw firstErr || new Error('All finance email sends failed');
+          }
+
           setFinanceStatus('Thanks — your details have been sent to Performance Finance. They will be in touch about eligibility.', 'ok');
           financeBtn.innerHTML = 'Details sent';
 
-          // Best-effort CRM label — do not block the success state.
+          // Best-effort CRM / CMS flag — do not block the success state.
           fetch(FINANCE_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -350,8 +376,7 @@
           });
         })
         .catch(function (err) {
-          clearTimeout(timeoutId);
-          console.error('Finance request failed:', err && (err.detail || err.message || err));
+          console.error('Finance request failed:', err && (err.message || err));
           financeBtn.disabled = false;
           financeBtn.innerHTML = financeBtnHtml;
           setFinanceStatus('Sorry — we could not send your details just now. Please try again, or call us on 0330 088 1156.', 'err');
