@@ -1,4 +1,4 @@
-const FINANCE_NOTIFY_EMAIL = 'oliver.acton@ft-associates.com';
+const FINANCE_NOTIFY_EMAIL = 'Pete.George@performancefinance.co.uk';
 const ALLOWED_ORIGINS = [
   'https://fta-academy.com',
   'https://www.fta-academy.com',
@@ -85,7 +85,7 @@ module.exports = async function handler(req, res) {
   }
 
   var payload = {
-    _subject: 'FTA Diploma - finance eligibility request (test)',
+    _subject: 'FTA Diploma - finance eligibility request',
     _template: 'table',
     _captcha: 'false',
     _replyto: email,

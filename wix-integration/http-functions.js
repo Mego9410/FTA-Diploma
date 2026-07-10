@@ -34,9 +34,13 @@ import { contacts } from 'wix-crm-backend';
  *        region, target, timeframe, funding, budget,
  *        barrier, hear, source, pageUrl, contactId  (Text),
  *        mobile, gdc    (Number),
- *        submittedAt    (Date & Time),
- *        consent        (Boolean)
+ *        submittedAt, financeDetailsSentAt  (Date & Time),
+ *        consent, financeDetailsSent  (Boolean)
  *     (Wix also auto-adds _id / _createdDate - leave those.)
+ *
+ *  Add financeDetailsSent (Boolean) and financeDetailsSentAt (Date & Time) to the
+ *  live collection, then Publish, so the finance CTA can mark rows when details
+ *  are emailed to Performance Finance.
  *
  *  Submissions appear in:  Contacts (CRM) + the DiplomaRegistrations collection.
  *  Contact custom fields are created automatically on first submission (prefixed
@@ -300,7 +304,8 @@ export async function post_registerInterest(request) {
       contactId: contactId || '',
       pageUrl: body.pageUrl ? String(body.pageUrl) : '',
       source: 'Diploma landing page',
-      submittedAt: new Date()
+      submittedAt: new Date(),
+      financeDetailsSent: false
     };
 
     await wixData.insert(COLLECTION, record, { suppressAuth: true });
@@ -318,8 +323,9 @@ export async function post_registerInterest(request) {
 
 /* --------------------------------------------------------------------------
  *  Optional finance eligibility request (post-registration CTA)
- *  Labels the applicant in CRM. The landing page emails basic contact fields
- *  (name, email, mobile) to FINANCE_NOTIFY_EMAIL from the browser.
+ *  Labels the applicant in CRM and marks financeDetailsSent on their CMS row.
+ *  The landing page emails basic contact fields via /api/request-finance, then
+ *  calls this endpoint so the registration table stays in sync.
  *
  *  Endpoint URLs:
  *     Live:  .../_functions/requestFinance
@@ -361,9 +367,22 @@ export async function post_requestFinance(request) {
 
   try {
     const contactId = await labelFinanceApplicant(lead);
+    let registrationId = null;
+    let registrationError = null;
+    try {
+      registrationId = await markFinanceDetailsSent(lead.email);
+    } catch (regErr) {
+      registrationError = String((regErr && regErr.message) || regErr);
+    }
+
     return ok({
       headers: headers,
-      body: { ok: true, contactId: contactId }
+      body: {
+        ok: true,
+        contactId: contactId,
+        registrationId: registrationId,
+        registrationError: registrationError
+      }
     });
   } catch (err) {
     return serverError({
@@ -375,6 +394,23 @@ export async function post_requestFinance(request) {
       }
     });
   }
+}
+
+async function markFinanceDetailsSent(email) {
+  // Update the latest registration row for this email.
+  const result = await wixData.query(COLLECTION)
+    .eq('email', email)
+    .descending('submittedAt')
+    .limit(1)
+    .find({ suppressAuth: true });
+
+  if (!result.items.length) return null;
+
+  const item = result.items[0];
+  item.financeDetailsSent = true;
+  item.financeDetailsSentAt = new Date();
+  const updated = await wixData.update(COLLECTION, item, { suppressAuth: true });
+  return updated._id;
 }
 
 async function labelFinanceApplicant(lead) {
