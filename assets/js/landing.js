@@ -16,6 +16,8 @@
      ============================================================ */
   var REGISTER_ENDPOINT = 'https://oliveracton.wixsite.com/my-site-1/_functions/registerInterest';
   var FINANCE_ENDPOINT = 'https://oliveracton.wixsite.com/my-site-1/_functions/requestFinance';
+  // Test inbox for finance eligibility emails (basic fields only).
+  var FINANCE_NOTIFY_EMAIL = 'oliver.acton@ft-associates.com';
   // Basic contact fields only — kept after submit for the optional finance CTA.
   var lastBasicDetails = null;
 
@@ -312,33 +314,55 @@
       financeBtn.innerHTML = 'Sending&hellip;';
       setFinanceStatus('', '');
 
-      fetch(FINANCE_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(lastBasicDetails)
-      })
-        .then(function (res) {
+      var emailPayload = {
+        _subject: 'FTA Diploma - finance eligibility request (test)',
+        _template: 'table',
+        _replyto: lastBasicDetails.email,
+        name: lastBasicDetails.firstName + ' ' + lastBasicDetails.lastName,
+        email: lastBasicDetails.email,
+        mobile: lastBasicDetails.mobile,
+        partner: 'Performance Finance',
+        pageUrl: lastBasicDetails.pageUrl || '',
+        note: 'Basic contact details only. Shared with consent via the diploma registration finance CTA.'
+      };
+
+      // Email goes from the browser; Wix only records a CRM finance label.
+      Promise.all([
+        fetch('https://formsubmit.co/ajax/' + encodeURIComponent(FINANCE_NOTIFY_EMAIL), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(emailPayload)
+        }).then(function (res) {
           return res.json().then(function (data) {
-            if (!res.ok) {
-              var err = new Error((data && data.error) || 'Request failed (' + res.status + ')');
-              err.detail = data && data.detail;
-              throw err;
+            if (!res.ok || (data && data.success === 'false')) {
+              throw new Error((data && (data.message || data.error)) || 'Email send failed');
             }
             return data;
           });
+        }),
+        fetch(FINANCE_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(lastBasicDetails)
+        }).then(function (res) {
+          return res.json().then(function (data) {
+            // CRM label is best-effort; email success is what the user cares about.
+            if (!res.ok) {
+              console.error('Finance CRM label failed:', data && (data.detail || data.error));
+            }
+            return data;
+          });
+        }).catch(function (err) {
+          console.error('Finance CRM label failed:', err);
+          return null;
         })
-        .then(function (data) {
-          if (data && data.ok) {
-            setFinanceStatus('Thanks — your details have been sent to Performance Finance. They will be in touch about eligibility.', 'ok');
-            financeBtn.innerHTML = 'Details sent';
-            return;
-          }
-          var fail = new Error((data && data.error) || 'Finance request failed');
-          fail.detail = data && data.detail;
-          throw fail;
+      ])
+        .then(function () {
+          setFinanceStatus('Thanks — your details have been sent to Performance Finance. They will be in touch about eligibility.', 'ok');
+          financeBtn.innerHTML = 'Details sent';
         })
         .catch(function (err) {
-          if (err && err.detail) console.error('Finance request failed:', err.detail);
+          console.error('Finance request failed:', err);
           financeBtn.disabled = false;
           financeBtn.innerHTML = financeBtnHtml;
           setFinanceStatus('Sorry — we could not send your details just now. Please try again, or call us on 0330 088 1156.', 'err');

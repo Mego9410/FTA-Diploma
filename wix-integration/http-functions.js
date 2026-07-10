@@ -1,48 +1,48 @@
+import { ok, badRequest, serverError } from 'wix-http-functions';
+import wixData from 'wix-data';
+import { contacts } from 'wix-crm-backend';
+
 /* ============================================================================
- *  FTA × Novus Diploma — Wix Velo backend endpoint
+ *  FTA x Novus Diploma - Wix Velo backend endpoint
  *  ----------------------------------------------------------------------------
  *  WHERE THIS GOES (do this inside the Wix Editor, not by uploading a file):
  *
- *  1. Open your Wix site → enable Dev Mode (Velo) from the top bar.
+ *  1. Open your Wix site -> enable Dev Mode (Velo) from the top bar.
  *  2. In the left "Velo" panel, under "Backend", create a file named EXACTLY:
  *         http-functions.js
  *     (Wix only exposes endpoints from a file with this exact name.)
  *  3. Paste the entire contents of THIS file into it and Publish the site.
  *
- *  YOUR ENDPOINT URLS (used in assets/js/landing.js → REGISTER_ENDPOINT):
+ *  YOUR ENDPOINT URLS (used in assets/js/landing.js -> REGISTER_ENDPOINT):
  *     Live (wixsite URL):   https://USERNAME.wixsite.com/SITE/_functions/registerInterest
  *     Landing page:         https://fta-academy.com
  *     Test (before publish): replace /_functions/ with /_functions-dev/
+ *     Finance CTA:          .../_functions/requestFinance
  *
- *  CREATE THE DATA COLLECTION (Wix Editor → Dev Mode → Databases):
- *     IMPORTANT — HTTP functions write to the LIVE database, not Sandbox.
+ *  CREATE THE DATA COLLECTION (Wix Editor -> Dev Mode -> Databases):
+ *     IMPORTANT - HTTP functions write to the LIVE database, not Sandbox.
  *     After creating the collection you must Publish the site so it exists live.
  *     The Collection ID in code must match exactly (case-sensitive):
- *       Dev Mode → Databases → hover collection → "Copy collection ID"
+ *       Dev Mode -> Databases -> hover collection -> "Copy collection ID"
  *     Paste that value into COLLECTION below (may NOT be "DiplomaRegistrations"
  *     if Wix auto-named it during CSV import, e.g. "Import1").
- *     Permissions:           "Custom use" is fine — this code uses suppressAuth,
+ *     Permissions:           "Custom use" is fine - this code uses suppressAuth,
  *                            so anonymous site visitors do NOT need write access.
- *     Fields (match your CMS schema — Import1 from CSV import):
- *        title          (Text — primary field; auto-filled from name),
+ *     Fields (match your CMS schema - Import1 from CSV import):
+ *        title          (Text - primary field; auto-filled from name),
  *        firstName, lastName, email, role, qualified,
  *        region, target, timeframe, funding, budget,
  *        barrier, hear, source, pageUrl, contactId  (Text),
  *        mobile, gdc    (Number),
  *        submittedAt    (Date & Time),
  *        consent        (Boolean)
- *     (Wix also auto-adds _id / _createdDate — leave those.)
+ *     (Wix also auto-adds _id / _createdDate - leave those.)
  *
  *  Submissions appear in:  Contacts (CRM) + the DiplomaRegistrations collection.
  *  Contact custom fields are created automatically on first submission (prefixed
- *  "Diploma — …" in Contacts → Manage Fields). View them on a contact's profile.
+ *  "Diploma - ..." in Contacts -> Manage Fields). View them on a contact's profile.
  *  Tighten ALLOWED_ORIGIN below to your landing-page domain before launch.
  * ========================================================================== */
-
-import { ok, badRequest, serverError } from 'wix-http-functions';
-import wixData from 'wix-data';
-import { contacts, triggeredEmails } from 'wix-crm-backend';
-import { fetch } from 'wix-fetch';
 
 // Origins that host the landing page (Vercel). Use '*' only while testing.
 const ALLOWED_ORIGINS = [
@@ -318,19 +318,16 @@ export async function post_registerInterest(request) {
 
 /* --------------------------------------------------------------------------
  *  Optional finance eligibility request (post-registration CTA)
- *  Sends basic contact fields only to FINANCE_NOTIFY_EMAIL for testing /
- *  hand-off to Performance Finance.
+ *  Labels the applicant in CRM. The landing page emails basic contact fields
+ *  (name, email, mobile) to FINANCE_NOTIFY_EMAIL from the browser.
  *
  *  Endpoint URLs:
  *     Live:  .../_functions/requestFinance
  *     Test:  .../_functions-dev/requestFinance
  * -------------------------------------------------------------------------- */
 
-const FINANCE_NOTIFY_EMAIL = 'oliver.acton@ft-associates.com';
 const FINANCE_REQUIRED = ['firstName', 'lastName', 'email', 'mobile'];
-// Optional: set to a Wix Triggered Email ID once created. FormSubmit covers testing.
-const FINANCE_TRIGGERED_EMAIL_ID = 'REPLACE_WITH_TRIGGERED_EMAIL_ID';
-const FINANCE_CONTACT_LABEL = 'Diploma — finance eligibility request';
+const FINANCE_CONTACT_LABEL = 'Diploma - finance eligibility request';
 
 export function options_requestFinance(request) {
   return ok({ headers: corsHeaders(requestOrigin(request)) });
@@ -355,71 +352,25 @@ export async function post_requestFinance(request) {
     return badRequest({ headers: headers, body: { ok: false, error: 'Invalid email address' } });
   }
 
-  const firstName = String(body.firstName).trim();
-  const lastName = String(body.lastName).trim();
-  const email = String(body.email).trim();
-  const mobile = String(body.mobile).trim();
-  const pageUrl = body.pageUrl ? String(body.pageUrl) : '';
   const lead = {
-    firstName: firstName,
-    lastName: lastName,
-    email: email,
-    mobile: mobile,
-    pageUrl: pageUrl
+    firstName: String(body.firstName).trim(),
+    lastName: String(body.lastName).trim(),
+    email: String(body.email).trim(),
+    mobile: String(body.mobile).trim()
   };
 
   try {
     const contactId = await labelFinanceApplicant(lead);
-
-    let emailSent = false;
-    let emailError = null;
-    if (FINANCE_TRIGGERED_EMAIL_ID && FINANCE_TRIGGERED_EMAIL_ID.indexOf('REPLACE') === -1) {
-      try {
-        await sendFinanceTriggeredEmail(contactId, lead);
-        emailSent = true;
-      } catch (mailErr) {
-        emailError = String((mailErr && mailErr.message) || mailErr);
-      }
-    }
-
-    // Email the test inbox via FormSubmit (no Wix email template required).
-    // First use may require confirming the activation link FormSubmit sends
-    // to FINANCE_NOTIFY_EMAIL.
-    let formSubmitOk = false;
-    let formSubmitError = null;
-    try {
-      formSubmitOk = await sendFinanceFormSubmitEmail(lead);
-    } catch (fsErr) {
-      formSubmitError = String((fsErr && fsErr.message) || fsErr);
-    }
-
-    if (!formSubmitOk && !emailSent) {
-      return serverError({
-        headers: headers,
-        body: {
-          ok: false,
-          error: 'Could not send finance request email',
-          detail: formSubmitError || emailError || 'No email channel succeeded'
-        }
-      });
-    }
-
     return ok({
       headers: headers,
-      body: {
-        ok: true,
-        emailSent: formSubmitOk || emailSent,
-        contactId: contactId,
-        emailError: emailError,
-        formSubmitError: formSubmitError
-      }
+      body: { ok: true, contactId: contactId }
     });
   } catch (err) {
     return serverError({
       headers: headers,
       body: {
         ok: false,
-        error: 'Server error sending finance request',
+        error: 'Server error recording finance request',
         detail: String((err && err.message) || err)
       }
     });
@@ -453,58 +404,4 @@ async function labelFinanceApplicant(lead) {
   }
 
   return contactId;
-}
-
-async function sendFinanceTriggeredEmail(applicantContactId, lead) {
-  let notify = await findContactByEmail(FINANCE_NOTIFY_EMAIL);
-  let notifyId;
-  if (notify) {
-    notifyId = notify._id;
-  } else {
-    const created = await contacts.createContact({
-      name: { first: 'Finance', last: 'Notify' },
-      emails: [{ tag: 'MAIN', email: FINANCE_NOTIFY_EMAIL, primary: true }]
-    }, { suppressAuth: true, allowDuplicates: false });
-    notifyId = created._id;
-  }
-
-  await triggeredEmails.emailContact(FINANCE_TRIGGERED_EMAIL_ID, notifyId, {
-    variables: {
-      firstName: lead.firstName,
-      lastName: lead.lastName,
-      email: lead.email,
-      mobile: lead.mobile,
-      pageUrl: lead.pageUrl || '',
-      applicantContactId: String(applicantContactId || '')
-    }
-  });
-}
-
-async function sendFinanceFormSubmitEmail(lead) {
-  const payload = {
-    _subject: 'FTA Diploma — finance eligibility request (test)',
-    _template: 'table',
-    _replyto: lead.email,
-    name: lead.firstName + ' ' + lead.lastName,
-    email: lead.email,
-    mobile: lead.mobile,
-    partner: 'Performance Finance',
-    pageUrl: lead.pageUrl || '',
-    note: 'Basic contact details only. Shared with consent via the diploma registration finance CTA.'
-  };
-
-  const response = await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(FINANCE_NOTIFY_EMAIL), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json'
-    },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await response.json();
-  if (!response.ok || (data && data.success === 'false')) {
-    throw new Error((data && (data.message || data.error)) || ('FormSubmit failed (' + response.status + ')'));
-  }
-  return true;
 }
