@@ -501,7 +501,7 @@
           </div>
           <div class="form-foot">
             <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 018 0v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-            Your details are kept confidential and never shared with third parties.
+            Your details are kept confidential. We only share them with a finance partner if you choose to check eligibility after registering.
           </div>
         </form>
 
@@ -509,6 +509,17 @@
           <span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           <h3>Thank you — you're on the list</h3>
           <p>We've received your registration for the January 2027 cohort. A member of our team will be in touch personally to talk it through. Keep an eye on your inbox.</p>
+
+          <div class="finance-cta" id="financeCta">
+            <h4>Check if you're eligible for finance</h4>
+            <p>0% finance is available for the diploma. Send your basic details to our finance partner and they'll be in touch about eligibility.</p>
+            <button type="button" class="btn btn-lg btn-primary" id="financeSendBtn">
+              Send my details for a finance check
+              <svg class="arw" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h9M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <p class="finance-disclaimer">By clicking, you agree that your name, email and mobile number will be shared with <a href="https://www.performancefinance.co.uk/" target="_blank" rel="noopener noreferrer">Performance Finance</a> so they can assess your eligibility for course finance. This is optional and separate from your diploma registration.</p>
+            <p class="finance-status" id="financeStatus" hidden></p>
+          </div>
         </div>
       </div>
     </div>

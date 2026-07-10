@@ -277,7 +277,19 @@ textarea.inp{height:auto;padding:14px 16px;resize:vertical;min-height:96px;line-
 .reg-success .check{width:72px;height:72px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 22px}
 .reg-success .check svg{width:36px;height:36px;color:var(--ink)}
 .reg-success h3{font-size:26px;color:var(--fg-1)}
-.reg-success p{font-size:15px;color:var(--fg-2);margin-top:12px;max-width:420px;margin-left:auto;margin-right:auto}
+.reg-success > p{font-size:15px;color:var(--fg-2);margin-top:12px;max-width:420px;margin-left:auto;margin-right:auto}
+
+/* post-submit finance CTA */
+.finance-cta{margin:28px auto 0;padding-top:26px;border-top:1px solid var(--border);max-width:460px;text-align:center}
+.finance-cta h4{font-size:18px;color:var(--fg-1);margin:0 0 8px}
+.finance-cta > p{font-size:14.5px;color:var(--fg-2);line-height:1.55;margin:0 0 18px}
+.finance-cta .btn{width:100%;justify-content:center}
+.finance-cta .btn:disabled{opacity:.65;cursor:not-allowed;transform:none}
+.finance-disclaimer{font-size:12px;color:var(--fg-3);line-height:1.5;margin:14px 0 0}
+.finance-disclaimer a{color:var(--gold-deep);font-weight:700;text-decoration:underline}
+.finance-status{font-size:13.5px;font-weight:600;margin:14px 0 0;line-height:1.45}
+.finance-status.is-ok{color:#1f6b3a}
+.finance-status.is-err{color:#a32a2a}
 
 /* =====================================================
    FAQ

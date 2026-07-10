@@ -41,7 +41,8 @@
 
 import { ok, badRequest, serverError } from 'wix-http-functions';
 import wixData from 'wix-data';
-import { contacts } from 'wix-crm-backend';
+import { contacts, triggeredEmails } from 'wix-crm-backend';
+import { fetch } from 'wix-fetch';
 
 // Origins that host the landing page (Vercel). Use '*' only while testing.
 const ALLOWED_ORIGINS = [
@@ -313,4 +314,197 @@ export async function post_registerInterest(request) {
     // Revert `error` back to a generic message before launch.
     return serverError({ headers: headers, body: { ok: false, error: 'Server error storing submission', detail: String((err && err.message) || err) } });
   }
+}
+
+/* --------------------------------------------------------------------------
+ *  Optional finance eligibility request (post-registration CTA)
+ *  Sends basic contact fields only to FINANCE_NOTIFY_EMAIL for testing /
+ *  hand-off to Performance Finance.
+ *
+ *  Endpoint URLs:
+ *     Live:  .../_functions/requestFinance
+ *     Test:  .../_functions-dev/requestFinance
+ * -------------------------------------------------------------------------- */
+
+const FINANCE_NOTIFY_EMAIL = 'oliver.acton@ft-associates.com';
+const FINANCE_REQUIRED = ['firstName', 'lastName', 'email', 'mobile'];
+// Optional: set to a Wix Triggered Email ID once created. FormSubmit covers testing.
+const FINANCE_TRIGGERED_EMAIL_ID = 'REPLACE_WITH_TRIGGERED_EMAIL_ID';
+const FINANCE_CONTACT_LABEL = 'Diploma — finance eligibility request';
+
+export function options_requestFinance(request) {
+  return ok({ headers: corsHeaders(requestOrigin(request)) });
+}
+
+export async function post_requestFinance(request) {
+  const headers = corsHeaders(requestOrigin(request));
+  let body;
+  try {
+    body = await request.body.json();
+  } catch (e) {
+    return badRequest({ headers: headers, body: { ok: false, error: 'Invalid JSON' } });
+  }
+
+  for (const key of FINANCE_REQUIRED) {
+    const val = body[key];
+    if (val === undefined || val === null || String(val).trim() === '') {
+      return badRequest({ headers: headers, body: { ok: false, error: 'Missing field: ' + key } });
+    }
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(body.email))) {
+    return badRequest({ headers: headers, body: { ok: false, error: 'Invalid email address' } });
+  }
+
+  const firstName = String(body.firstName).trim();
+  const lastName = String(body.lastName).trim();
+  const email = String(body.email).trim();
+  const mobile = String(body.mobile).trim();
+  const pageUrl = body.pageUrl ? String(body.pageUrl) : '';
+  const lead = {
+    firstName: firstName,
+    lastName: lastName,
+    email: email,
+    mobile: mobile,
+    pageUrl: pageUrl
+  };
+
+  try {
+    const contactId = await labelFinanceApplicant(lead);
+
+    let emailSent = false;
+    let emailError = null;
+    if (FINANCE_TRIGGERED_EMAIL_ID && FINANCE_TRIGGERED_EMAIL_ID.indexOf('REPLACE') === -1) {
+      try {
+        await sendFinanceTriggeredEmail(contactId, lead);
+        emailSent = true;
+      } catch (mailErr) {
+        emailError = String((mailErr && mailErr.message) || mailErr);
+      }
+    }
+
+    // Email the test inbox via FormSubmit (no Wix email template required).
+    // First use may require confirming the activation link FormSubmit sends
+    // to FINANCE_NOTIFY_EMAIL.
+    let formSubmitOk = false;
+    let formSubmitError = null;
+    try {
+      formSubmitOk = await sendFinanceFormSubmitEmail(lead);
+    } catch (fsErr) {
+      formSubmitError = String((fsErr && fsErr.message) || fsErr);
+    }
+
+    if (!formSubmitOk && !emailSent) {
+      return serverError({
+        headers: headers,
+        body: {
+          ok: false,
+          error: 'Could not send finance request email',
+          detail: formSubmitError || emailError || 'No email channel succeeded'
+        }
+      });
+    }
+
+    return ok({
+      headers: headers,
+      body: {
+        ok: true,
+        emailSent: formSubmitOk || emailSent,
+        contactId: contactId,
+        emailError: emailError,
+        formSubmitError: formSubmitError
+      }
+    });
+  } catch (err) {
+    return serverError({
+      headers: headers,
+      body: {
+        ok: false,
+        error: 'Server error sending finance request',
+        detail: String((err && err.message) || err)
+      }
+    });
+  }
+}
+
+async function labelFinanceApplicant(lead) {
+  // Add a finance label to the applicant contact without overwriting diploma fields.
+  const labelResult = await contacts.findOrCreateLabel(FINANCE_CONTACT_LABEL, CRM_AUTH);
+  const labelKey = labelResult.label.key;
+  const createOptions = { suppressAuth: true, allowDuplicates: false };
+  const existing = await findContactByEmail(lead.email);
+  let contactId;
+
+  if (existing) {
+    contactId = existing._id;
+  } else {
+    const created = await contacts.createContact({
+      name: { first: lead.firstName, last: lead.lastName },
+      emails: [{ tag: 'MAIN', email: lead.email, primary: true }],
+      phones: [{ tag: 'MOBILE', phone: lead.mobile, countryCode: 'GB', primary: true }],
+      labelKeys: [labelKey]
+    }, createOptions);
+    contactId = created._id;
+  }
+
+  try {
+    await contacts.labelContact(contactId, [labelKey], CRM_AUTH);
+  } catch (labelErr) {
+    // Label may already be on the contact.
+  }
+
+  return contactId;
+}
+
+async function sendFinanceTriggeredEmail(applicantContactId, lead) {
+  let notify = await findContactByEmail(FINANCE_NOTIFY_EMAIL);
+  let notifyId;
+  if (notify) {
+    notifyId = notify._id;
+  } else {
+    const created = await contacts.createContact({
+      name: { first: 'Finance', last: 'Notify' },
+      emails: [{ tag: 'MAIN', email: FINANCE_NOTIFY_EMAIL, primary: true }]
+    }, { suppressAuth: true, allowDuplicates: false });
+    notifyId = created._id;
+  }
+
+  await triggeredEmails.emailContact(FINANCE_TRIGGERED_EMAIL_ID, notifyId, {
+    variables: {
+      firstName: lead.firstName,
+      lastName: lead.lastName,
+      email: lead.email,
+      mobile: lead.mobile,
+      pageUrl: lead.pageUrl || '',
+      applicantContactId: String(applicantContactId || '')
+    }
+  });
+}
+
+async function sendFinanceFormSubmitEmail(lead) {
+  const payload = {
+    _subject: 'FTA Diploma — finance eligibility request (test)',
+    _template: 'table',
+    _replyto: lead.email,
+    name: lead.firstName + ' ' + lead.lastName,
+    email: lead.email,
+    mobile: lead.mobile,
+    partner: 'Performance Finance',
+    pageUrl: lead.pageUrl || '',
+    note: 'Basic contact details only. Shared with consent via the diploma registration finance CTA.'
+  };
+
+  const response = await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(FINANCE_NOTIFY_EMAIL), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json();
+  if (!response.ok || (data && data.success === 'false')) {
+    throw new Error((data && (data.message || data.error)) || ('FormSubmit failed (' + response.status + ')'));
+  }
+  return true;
 }

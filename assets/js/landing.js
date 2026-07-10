@@ -10,10 +10,14 @@
      Landing page: https://fta-academy.com
        Live (wixsite URL):    https://USERNAME.wixsite.com/SITE/_functions/registerInterest
        Test version:          .../_functions-dev/registerInterest
+     Finance CTA uses:        .../_functions/requestFinance
      While REGISTER_ENDPOINT contains "YOURDOMAIN" the form runs in demo mode
      (shows success without sending), so the page works before go-live.
      ============================================================ */
   var REGISTER_ENDPOINT = 'https://oliveracton.wixsite.com/my-site-1/_functions/registerInterest';
+  var FINANCE_ENDPOINT = 'https://oliveracton.wixsite.com/my-site-1/_functions/requestFinance';
+  // Basic contact fields only — kept after submit for the optional finance CTA.
+  var lastBasicDetails = null;
 
   /* ---------- Scroll reveal ---------- */
   var reveals = document.querySelectorAll('.reveal');
@@ -262,12 +266,84 @@
     };
   }
 
-  function showSuccess() {
+  function basicDetailsFromPayload(payload) {
+    return {
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      email: payload.email,
+      mobile: payload.mobile,
+      pageUrl: payload.pageUrl || window.location.href
+    };
+  }
+
+  function showSuccess(payload) {
+    if (payload) lastBasicDetails = basicDetailsFromPayload(payload);
     form.style.display = 'none';
     if (success) {
       success.classList.add('show');
       success.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+  }
+
+  function setFinanceStatus(message, kind) {
+    var status = document.getElementById('financeStatus');
+    if (!status) return;
+    status.hidden = !message;
+    status.textContent = message || '';
+    status.classList.toggle('is-ok', kind === 'ok');
+    status.classList.toggle('is-err', kind === 'err');
+  }
+
+  var financeBtn = document.getElementById('financeSendBtn');
+  var financeBtnHtml = financeBtn ? financeBtn.innerHTML : '';
+  if (financeBtn) {
+    financeBtn.addEventListener('click', function () {
+      if (!lastBasicDetails) {
+        setFinanceStatus('Sorry — we could not find your details. Please refresh and register again.', 'err');
+        return;
+      }
+      if (FINANCE_ENDPOINT.indexOf('YOURDOMAIN') !== -1) {
+        setFinanceStatus('Thanks — your details would be sent for a finance check (demo mode).', 'ok');
+        financeBtn.disabled = true;
+        return;
+      }
+
+      financeBtn.disabled = true;
+      financeBtn.innerHTML = 'Sending&hellip;';
+      setFinanceStatus('', '');
+
+      fetch(FINANCE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(lastBasicDetails)
+      })
+        .then(function (res) {
+          return res.json().then(function (data) {
+            if (!res.ok) {
+              var err = new Error((data && data.error) || 'Request failed (' + res.status + ')');
+              err.detail = data && data.detail;
+              throw err;
+            }
+            return data;
+          });
+        })
+        .then(function (data) {
+          if (data && data.ok) {
+            setFinanceStatus('Thanks — your details have been sent to Performance Finance. They will be in touch about eligibility.', 'ok');
+            financeBtn.innerHTML = 'Details sent';
+            return;
+          }
+          var fail = new Error((data && data.error) || 'Finance request failed');
+          fail.detail = data && data.detail;
+          throw fail;
+        })
+        .catch(function (err) {
+          if (err && err.detail) console.error('Finance request failed:', err.detail);
+          financeBtn.disabled = false;
+          financeBtn.innerHTML = financeBtnHtml;
+          setFinanceStatus('Sorry — we could not send your details just now. Please try again, or call us on 0330 088 1156.', 'err');
+        });
+    });
   }
 
   function showFormError(message) {
@@ -303,7 +379,7 @@
 
     // Demo mode: endpoint not configured yet — show success without sending.
     if (REGISTER_ENDPOINT.indexOf('YOURDOMAIN') !== -1) {
-      showSuccess();
+      showSuccess(collectPayload());
       return;
     }
 
@@ -315,10 +391,11 @@
     var errBox = document.getElementById('formErrorBox');
     if (errBox) errBox.style.display = 'none';
 
+    var payload = collectPayload();
     fetch(REGISTER_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(collectPayload())
+      body: JSON.stringify(payload)
     })
       .then(function (res) {
         return res.json().then(function (data) {
@@ -332,7 +409,7 @@
       })
       .then(function (data) {
         if (data && data.ok) {
-          showSuccess();
+          showSuccess(payload);
         } else {
           var fail = new Error((data && data.error) || 'Submission failed');
           fail.detail = data && data.detail;
