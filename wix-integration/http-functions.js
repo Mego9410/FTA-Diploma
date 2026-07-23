@@ -32,10 +32,10 @@ import { contacts } from 'wix-crm-backend';
  *        title          (Text - primary field; auto-filled from name),
  *        firstName, lastName, email, role, qualified,
  *        region, target, timeframe, funding, budget,
- *        barrier, hear, source, pageUrl, contactId  (Text),
+ *        barrier, hear, source, pageUrl, contactId, bmcNote  (Text),
  *        mobile, gdc    (Number),
  *        submittedAt, financeDetailsSentAt  (Date & Time),
- *        consent, financeDetailsSent  (Boolean)
+ *        consent, financeDetailsSent, bmcDelegate  (Boolean)
  *     (Wix also auto-adds _id / _createdDate - leave those.)
  *
  *  Add financeDetailsSent (Boolean) and financeDetailsSentAt (Date & Time) to the
@@ -75,6 +75,14 @@ const CONTACT_FIELD_DEFS = [
     displayName: 'Diploma — Marketing consent',
     dataType: 'TEXT',
     valueFrom: (body) => (body.consent === true ? 'Yes' : 'No')
+  },
+  {
+    bodyKey: 'bmcNote',
+    displayName: 'Diploma — BMC discount',
+    dataType: 'TEXT',
+    valueFrom: (body) => (body.bmcDelegate === true || body.bmcNote
+      ? (body.bmcNote || 'Buyers Masterclass delegate, 15% discount applies')
+      : 'No')
   },
   { bodyKey: 'pageUrl', displayName: 'Diploma — Registration page', dataType: 'TEXT' },
   {
@@ -305,7 +313,11 @@ export async function post_registerInterest(request) {
       pageUrl: body.pageUrl ? String(body.pageUrl) : '',
       source: 'Diploma landing page',
       submittedAt: new Date(),
-      financeDetailsSent: false
+      financeDetailsSent: false,
+      bmcDelegate: body.bmcDelegate === true,
+      bmcNote: body.bmcDelegate === true
+        ? (body.bmcNote ? String(body.bmcNote) : 'Buyers Masterclass delegate, 15% discount applies')
+        : ''
     };
 
     await wixData.insert(COLLECTION, record, { suppressAuth: true });

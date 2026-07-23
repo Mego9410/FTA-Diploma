@@ -251,11 +251,29 @@
   var submitBtn = form.querySelector('button[type=submit]');
   var submitBtnHtml = submitBtn ? submitBtn.innerHTML : '';
 
+  var BMC_DISCOUNT_NOTE = 'Buyers Masterclass delegate, 15% discount applies';
+
+  function normalizeEmail(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function isBmcAttendee(email) {
+    var list = window.BMC_ATTENDEE_EMAILS;
+    if (!list || !list.length) return false;
+    var needle = normalizeEmail(email);
+    for (var i = 0; i < list.length; i++) {
+      if (normalizeEmail(list[i]) === needle) return true;
+    }
+    return false;
+  }
+
   function collectPayload() {
+    var email = form.email.value.trim();
+    var bmcDelegate = isBmcAttendee(email);
     return {
       firstName: form.firstName.value.trim(),
       lastName: form.lastName.value.trim(),
-      email: form.email.value.trim(),
+      email: email,
       mobile: form.mobile.value.trim(),
       role: form.role.value,
       gdc: form.gdc.value.trim(),
@@ -268,7 +286,9 @@
       barrier: form.barrier.value.trim(),
       hear: form.hear.value,
       consent: form.consent.checked,
-      pageUrl: window.location.href
+      pageUrl: window.location.href,
+      bmcDelegate: bmcDelegate,
+      bmcNote: bmcDelegate ? BMC_DISCOUNT_NOTE : ''
     };
   }
 
@@ -278,7 +298,9 @@
       lastName: payload.lastName,
       email: payload.email,
       mobile: payload.mobile,
-      pageUrl: payload.pageUrl || window.location.href
+      pageUrl: payload.pageUrl || window.location.href,
+      bmcDelegate: !!payload.bmcDelegate,
+      bmcNote: payload.bmcNote || ''
     };
   }
 
@@ -301,11 +323,18 @@
   }
 
   function sendFinanceEmailTo(to, details) {
+    var baseNote = 'Basic contact details only. Shared with consent via the diploma registration finance CTA.';
+    var note = details.bmcNote
+      ? details.bmcNote + ' | ' + baseNote
+      : baseNote;
+
     return fetch('https://formsubmit.co/ajax/' + encodeURIComponent(to), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({
-        _subject: 'FTA Diploma - finance eligibility request',
+        _subject: details.bmcNote
+          ? 'FTA Diploma - finance eligibility request (BMC 15% discount)'
+          : 'FTA Diploma - finance eligibility request',
         _template: 'table',
         _captcha: 'false',
         _replyto: details.email,
@@ -314,7 +343,8 @@
         mobile: details.mobile,
         partner: 'Performance Finance',
         pageUrl: details.pageUrl || '',
-        note: 'Basic contact details only. Shared with consent via the diploma registration finance CTA.'
+        discount: details.bmcNote || 'None',
+        note: note
       })
     }).then(function (res) {
       return res.json().then(function (data) {
