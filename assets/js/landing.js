@@ -100,7 +100,7 @@
   }
 
   function initCustomSelects() {
-    var chevSrc = 'assets/icons/down-yellow-plain-arrow.svg';
+    var chevSrc = '/assets/icons/down-yellow-plain-arrow.svg';
     form.querySelectorAll('select.inp').forEach(function (select) {
       var wrap = document.createElement('div');
       wrap.className = 'custom-select';
